@@ -1,0 +1,116 @@
+---
+title: "Qualificação - Tauanna"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+
+library(tidyverse)
+library(readxl)
+library(lubridate)
+
+theme_set(theme_light())
+
+
+```
+
+
+```{r}
+
+colunas <- c("numero", "registro_esqueleto", "empty_1", "sexo", 
+             "presenca_ebo", "empty_2", "vertebras_acometidas", "empty_3", 
+             "tipo", "feto")
+
+
+ebos <- read_xlsx("dados_tauanna.xlsx", col_names = colunas) %>% 
+  select(-empty_1,  -empty_2, -empty_3)
+
+
+
+```
+
+
+```{r}
+
+datas_ebos <- ebos %>% 
+  rownames_to_column("row") %>% 
+  filter(str_detect(numero, "Data") | str_detect(numero, "DATA")) %>% 
+  select(row, numero) %>% 
+  mutate(numero = dmy(str_remove(numero, "Data: ")))
+
+
+ebos <- ebos %>% 
+  filter(if_any(everything(), ~ !is.na(.))) %>% 
+  filter(!str_starts(numero, "Data") 
+         & !str_starts(numero, "DATA")
+         & !str_starts(numero, "N")
+         & !str_starts(numero, "\\*")) 
+
+ebos <- ebos %>% 
+  mutate(presenca_ebo = 
+           ifelse(presenca_ebo == "x" | presenca_ebo == "X", 
+                  "NAO", presenca_ebo),
+         vertebras_acometidas = 
+           ifelse(vertebras_acometidas == "x" | vertebras_acometidas == "X", 
+                  NA, vertebras_acometidas),
+         tipo = ifelse(tipo == "x" | tipo == "X", NA, tipo),
+         feto = if_else(feto == "Feto", TRUE, FALSE)) 
+
+
+```
+
+Qual a ocorrência de EBO na amostra?
+
+
+```{r}
+
+ebos %>% 
+  count(presenca_ebo) %>% 
+  mutate(presenca_ebo = str_to_title(presenca_ebo),
+         prop = n/sum(n))
+
+```
+
+
+Quais as vértebras mais acometidas pela EBO?
+
+
+```{r}
+
+```
+
+
+Das vértebras mais acometidas, quantas são bilaterais e quantas são unilaterais?
+
+```{r}
+
+```
+
+
+Como a EBO está distribuída pelos sexos masculino e feminino?
+
+```{r}
+
+sexo_ebo <- ebos %>% 
+  count(sexo) %>% 
+  mutate(prop = n/sum(n),
+         y_position = cumsum(prop)- 0.5*prop )
+
+
+sexo_ebo %>%   
+  ggplot(aes(x="", y = prop, fill = sexo)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  theme(legend.position = "none") +
+  geom_text(aes(y = y_position, label = sexo), color = "white", size = 6)
+
+
+
+```
+
+
