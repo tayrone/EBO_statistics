@@ -1,8 +1,8 @@
 ---
 title: "Qualificação - Tauanna"
 output:
+  pdf_document: default
   html_document: default
-    df_print: kable
 ---
 
 ```{r setup, include=FALSE}
@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(lubridate)
+library(kableExtra)
 
 theme_set(theme_light())
 
@@ -65,22 +66,40 @@ ebos <- ebos %>%
 
 ```
 
-### Iniciar os resultados com a caracterização da amostra por sexo e idade (mínima, máxima, média e mediana):
 
+### Como a EBO está distribuída pelos sexos masculino e feminino?
 
-```{r}
+"Iniciar os resultados com a caracterização da amostra por sexo e idade (mínima, máxima, média e mediana)." 
+Não existe a variável "idade" nos dados. Dessa forma, só é possível ver a distribuição das amostras por sexo.
 
-ebos %>% 
-  group_by(sexo) %>% 
-  summarise(numero_de_amostras = n()) %>% 
-  mutate(proporcao_de_amostras = 
-           scales::percent(numero_de_amostras/sum(numero_de_amostras))) %>% 
-  rename_with(str_to_title) %>% 
-  rename_with(~str_replace_all(., "_", " "))
+O primeiro gráfico mostra a distribuição dos sexos em todos os esqueletos da amostra (com e sem EBO).
+
+```{r, fig.align='center', fig.height=7, fig.width=8, echo=FALSE}
+
+sexo_ebo <- ebos %>% 
+  count(sexo) %>% 
+  mutate(prop = n/sum(n),
+         y_position = cumsum(prop)- 0.5*prop)
+
+plot <- sexo_ebo %>% 
+  ggplot(aes(sexo, n)) +
+  geom_col() +
+  geom_label(aes(label = scales::percent(prop)), vjust = -.2)
+
+plot +
+  labs(x = "Sexo", y = "Número de pessoas na amostra",
+       title = "Há mais homens do que mulheres na amostra",
+       subtitle = "No total, são 226 homens e 201 mulheres") +
+  scale_x_discrete(labels = c("Feminino", "Masculino")) +
+  ylim(c(0, 250))
+
+ggsave("figuras/amostra_sexos.png", width = 8, height = 8)
 
 ```
 
-### Como a EBO está distribuída pelos sexos masculino e feminino?
+
+O segundo gráfico mostra a distribuição dos sexos apenas nos esqueletos com EBO.
+
 
 ```{r, fig.align='center', fig.height=7, fig.width=8, echo=FALSE}
 
@@ -135,13 +154,16 @@ ggsave("figuras/ebo_ocorrencia.png", width = 7, height = 8)
 
 133 esqueletos tem EBO. Esqueletos sem EBO são 242. Incompletos e prejudicados somam 52, no total.
 
+\pagebreak
 
 ### Quais as vértebras mais acometidas pela EBO?
 
-Mostrar a distribuição das vétebras com EBO (não seria melhor uma tabela?)
+"Mostrar a distribuição das vétebras com EBO (não seria melhor uma tabela?)"
+
+Observação: Nos dados, existe uma única vértebra de nome “C”. Por ser inconclusiva, eu retirei essa observação da amostra para gerar as tabelas presentes nesse documento.
 
 
-```{r, fig.align='center', fig.height=8, fig.width=7, echo=FALSE, max.print = 1}
+```{r, echo=FALSE}
 
 vertebras_prop <- ebos %>% 
   filter(presenca_ebo == "SIM") %>% 
@@ -158,22 +180,41 @@ vertebras_prop <- ebos %>%
 
 
 # ***Terminar de fazer a impressão bonita dessa tabela aqui!***
+# Usar pacote gdExtras 
 
-vertebras_prop %>% 
+tabela_vertebras <- vertebras_prop %>% 
   select(vertebras_acometidas, n_ebos, prop)
+
+#knitr::kable(test)
+
+tabela_vertebras$prop = formattable::percent(tabela_vertebras$prop, digits = 2) 
+
+tabela_vertebras %>%
+  knitr::kable(
+    format = "latex",
+    align = "l",
+    booktabs = TRUE,
+    longtable = TRUE,
+    linesep = "",
+    col.names = c("Vétebra", "Número de Casos de EBO", "Proporção do Número Total de Casos ")
+    ) %>%
+  kableExtra::kable_styling(
+      position = "center",
+      latex_options = c("striped", "repeat_header"),
+      stripe_color = "gray!15"
+    )
 
 
 ```
 
 
-```{r}
+```{r, fig.align='center', fig.height=8, fig.width=7, echo=FALSE}
 
-plot <- vertebras_prop %>% 
+plot <- vertebras_prop %>%
   ggplot(aes(fct_reorder(vertebras_acometidas, -n_ebos), n_ebos)) +
   geom_point() +
   geom_line(group = 1) +
-  geom_label(aes(label = n_ebos), vjust = -.4, hjust = 1.2) +
-  geom_label(aes(label = scales::percent(prop)), vjust = -.4, hjust = -.01) +
+  geom_label(aes(label = n_ebos), vjust = -.4) +
   geom_hline(yintercept = 16.8, lty = "dashed", color = "#D04649")
 
 plot +
@@ -223,6 +264,41 @@ ggsave("figuras/tipo_acometimento.png", width = 8, height = 7)
 ```
 
 Considerando apenas as vértebras mais acometidas (S1-S5), 97.1% apresentam um acometimento puramente bilateral. O restante das vértebras apresentou um acometimento ambíguo (Unilateral/Bilateral) ou não informado.
+
+\pagebreak
+
+### Houve associação de mais de um segmento? Exemplo: C1 + L5; S1 + S5.
+
+```{r, echo=FALSE}
+
+associacao_tabela <- ebos %>% 
+  filter(presenca_ebo == "SIM") %>% 
+  filter(vertebras_acometidas != "C") %>% 
+  count(vertebras_acometidas) %>% 
+  arrange(-n) %>% 
+  mutate(prop = n/sum(n))
+
+
+associacao_tabela$prop = formattable::percent(associacao_tabela$prop, digits = 2) 
+
+associacao_tabela %>%
+  knitr::kable(
+    format = "latex",
+    align = "l",
+    booktabs = TRUE,
+    longtable = TRUE,
+    linesep = "",
+    col.names = c("Vétebra (Incluindo Associações)", "Número de Casos de EBO", "Proporção do Número Total de Casos ")
+    ) %>%
+  kableExtra::kable_styling(
+      position = "center",
+      latex_options = c("striped", "repeat_header"),
+      stripe_color = "gray!15"
+    )
+
+```
+
+
 
 
 <!-- #### Qual a relação entre as variáveis "sexo" e a "presença de EBO"? -->
