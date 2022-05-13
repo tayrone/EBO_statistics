@@ -227,7 +227,7 @@ tabela_vertebras %>%
     booktabs = TRUE,
     longtable = TRUE,
     linesep = "",
-    col.names = c("Vétebra", "Número de Casos de EBO", "Proporção do Número Total de Casos ")
+    col.names = c("Seguimento", "Número de Casos de EBO", "Proporção do Número Total de Casos ")
     ) %>%
   kableExtra::kable_styling(
       position = "center",
@@ -249,7 +249,7 @@ plot <- vertebras_prop %>%
   geom_hline(yintercept = mean(vertebras_prop$media), lty = "dashed", color = "#D04649")
 
 plot +
-  labs(x = "Vétebras Acometidas", y = "Número de casos de EBO",
+  labs(x = "Seguimentos Acometidos", y = "Número de casos de EBO",
        title = "Cinco seguimentos apresentam um número de casos acima da média",
        caption = "A linha pontilhada representa o número médio (9.77) de casos de EBO por seguimento, na amostra.") +
   ylim(c(0, 100)) +
